@@ -62,6 +62,12 @@
         "Technology": "Voxel"
       }
     },
+    "StarterGui": {
+      "Client": {
+        "$path": "src/gui"
+      }
+      
+    },
     "SoundService": {
       "$properties": {
         "RespectFilteringEnabled": true

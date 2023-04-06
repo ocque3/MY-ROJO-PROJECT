@@ -1,7 +1,7 @@
 local Players = game:GetService("Players")
 local DataStorage = game:GetService("DataStoreService")
 local checkPointSystem = DataStorage:GetDataStore("LastCheckPoint")
-local checkPoints = workspace:WaitForChild("CheckPoints")
+local checkPoints = game.Workspace.CheckPoints
 local RunService = game:GetService("RunService")
 
 local function onCharacterAdded(character, player, stages)
@@ -9,22 +9,10 @@ local function onCharacterAdded(character, player, stages)
     local humanoid = character:WaitForChild("Humanoid")
     humanoid.Died:Connect(function()
         local points = player.leaderstats.Points
-        points.Value -= 10
-        if points.Value > 10 then
-            points.Value -= 10
-        else
-            points.Value -= 1
-        end
+        points.Value = 0
         player:SetAttribute("IsAlive", false)
     end)
    
-end
-
-local function Spawn(character, stage)
-    repeat task.wait() until character ~= nil
-    -- CP "CheckPoint"--
-    local CP = checkPoints:FindFirstChild(stage.Value)
-    character:MoveTo(CP.Position + Vector3.new(0,5,0))
 end
 
 local function savedCheckPoint(player)
@@ -34,7 +22,11 @@ local function savedCheckPoint(player)
     }
 
     local success, err = pcall(function()
-        checkPointSystem:SetAsync(player.UserId, saveData)
+        if player.UserId == 14804019 and saveData[1] > 0 then
+            checkPointSystem:UpdateAsync(14804019, 0)
+        else
+            checkPointSystem:SetAsync(player.UserId, saveData)
+        end
     end)
 
     if success then
@@ -44,11 +36,13 @@ local function savedCheckPoint(player)
     end
 end
 -- If Player left the game --
+
 Players.PlayerRemoving:Connect(function(player)
     savedCheckPoint(player)
 end)
 
 -- If Player game Crashed --
+
 game:BindToClose(function()
     if RunService:IsStudio() then return end
 
@@ -79,7 +73,6 @@ Players.PlayerAdded:Connect(function(player)
 
     local data 
     local success, err = pcall(function()
-        
         data = checkPointSystem:GetAsync(player.UserId)
     end)
 
@@ -93,21 +86,26 @@ Players.PlayerAdded:Connect(function(player)
     player:SetAttribute("IsAlive", false)
 
     player.CharacterAdded:Connect(function(character)
+        character = player.Character
+        repeat task.wait() until character ~= nil 
+
+        local checkPoint = checkPoints:FindFirstChild(stage.Value)
+        character:MoveTo(checkPoint.Position + Vector3.new(0,2,0))
+
         onCharacterAdded(character,player, stage)
-        Spawn(character.stage)
     end)
+    
+    for _, v in pairs(checkPoints:GetChildren()) do
+        v.Touched:Connect(function(otherpart)
+            player = Players:GetPlayerFromCharacter(otherpart.Parent)
+            local stageValue = player.leaderstats:WaitForChild("Stage")
 
-    for _, v in pairs(checkPoints:GetChildren) do
-        if v:isA("BasePart") then
-            v.Touched:Connect(function(otherpart)
-                local player = Players:GetPlayerFromCharacter(otherpart.Parent)
-                local stageValue = player.leaderstats.Stage
-
-                if player and stageValue < tonumber(v.Name) then
-                    stageValue.Value = v.Name
-                end
-            end)
-        end
+            if player and stageValue.Value < v.Name then
+                stageValue.Value = v.Name
+            else
+                return
+            end
+        end)
     end
 
 end)
